@@ -1,16 +1,19 @@
 import requests
 import sys
 from bs4 import BeautifulSoup
-from transliterate import translit
+from typing import List, Dict, Union
+
 main_page_url = "https://dom.mingkh.ru"
 header = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'}
+    'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                   'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36')
+}
 
 
-def get_city(city: str):
-    if type(city) != str:
-        print("Нужно написать название города")
-        return 0
+def get_city(city: str) -> List[str]:
+    if city.strip():
+        exit("Нужно написать название города")
+
     city = city.lower()
     city_list = {}
     regions = requests.get('https://dom.mingkh.ru/moskovskaya-oblast/#all_cities', headers=header)
@@ -31,7 +34,7 @@ def get_city(city: str):
         print("Такого города нет, вот список населенных пунктов:")
         for city_ in city_list.keys():
             print(city_.capitalize())
-        sys.exit(0)
+        exit()
 
 
 def max_page(city):
@@ -71,10 +74,10 @@ def get_url(city):
             yield url
 
 
-def parse_result(city: str):
+def parse_result(city: str) -> List[Dict[str, Union[str, int, None]]]:
     print("Получили данные, начинаем записывать результат...")
-    city_name = translit(city, language_code='ru', reversed=True)
-    my_dict = {city_name: []}
+    my_list = []
+
     for url in get_url(city):
         union_vals, pre_dict, keys, vals = {}, {}, [], []
         response = requests.get(url, headers=header)
@@ -88,7 +91,8 @@ def parse_result(city: str):
             vals.append(dd.text)
         union_vals = dict(zip(keys, vals))
         print(union_vals.get('Адрес', 'Нет данных').removesuffix('   На карте'))
-        pre_dict = {
+
+        my_list.append({
             'city': union_vals.get('Адрес', 'Нет данных').split(',')[2].replace(' ', ''),
             'street': union_vals.get('Адрес', 'Нет данных').split(',')[0],
             'num_house': union_vals.get('Адрес', 'Нет данных').split(',')[1].replace(' ', ''),
@@ -102,7 +106,7 @@ def parse_result(city: str):
             'playground': union_vals.get('Детская площадка', "Нет данных"),
             'sports_ground': union_vals.get('Спортивная площадка', "Нет данных"),
             'cadastral_number': union_vals.get('Кадастровый номер', "Нет данных")
-        }
-        my_dict[city_name].append(pre_dict)
-    return my_dict
+        })
+
+    return my_list
 

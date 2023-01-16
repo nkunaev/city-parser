@@ -1,5 +1,5 @@
 from transliterate import translit
-import json, csv, os, sys
+import json, csv, os
 from web_parse import parse_result
 
 
@@ -16,8 +16,10 @@ if os.name == "nt":
 elif os.name == "posix":
     current_path += '/' + f"{city_name}"
 else:
-    print("Не известная операционная система! ")
-    sys.exit(0)
+    #print("Не известная операционная система! ")
+    #sys.exit(0)
+
+    exit("Не известная операционная система! ")
 
 data = parse_result(city_name_ru)
 
@@ -27,59 +29,17 @@ if save_file_type == 1:
     current_path += ".json"
     with open(current_path, 'w') as file:
         json.dump(data, file, indent=2)
+
 elif save_file_type == 2:
     current_path += ".csv"
     data_raw = data[city_name]
     with open(current_path, 'a', encoding='cp1251', newline='') as file:
         writer = csv.writer(file, delimiter=",")
-        writer.writerow(
-            [
-                "city",
-                "street",
-                "num_house",
-                'house_type',
-                'living_quarters',
-                'series_and_type_of_construction',
-                'type_of_overlap',
-                'wall_material',
-                'type_of_garbage_chute',
-                'recognized_as_emergency',
-                'playground',
-                'sports_ground',
-                'cadastral_number'
-            ]
-        )
+        writer.writerow(*data_raw[0].keys())
+
     for info in data_raw:
-        city = info['city']
-        street = info['street']
-        num_house = info['num_house']
-        house_type = info['house_type']
-        living_quarters = info['living_quarters']
-        series_and_type_of_construction = info['series_and_type_of_construction']
-        type_of_overlap = info['type_of_overlap']
-        wall_material = info['wall_material']
-        type_of_garbage_chute = info['type_of_garbage_chute']
-        recognized_as_emergency = info['recognized_as_emergency']
-        playground = info['playground']
-        sports_ground = info['sports_ground']
-        cadastral_number = info['cadastral_number']
         with open(current_path, 'a', encoding='cp1251', newline='') as file:
             writer = csv.writer(file, delimiter=",")
-            writer.writerow(
-                [
-                    city,
-                    street,
-                    num_house,
-                    house_type,
-                    living_quarters,
-                    series_and_type_of_construction,
-                    type_of_overlap,
-                    wall_material,
-                    type_of_garbage_chute,
-                    recognized_as_emergency,
-                    playground,
-                    sports_ground,
-                    cadastral_number
-                ]
-            )
+            writer.writerow(*info.values())
+
 print("Done!")
