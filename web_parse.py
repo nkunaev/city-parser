@@ -11,15 +11,19 @@ header = {
 
 
 def get_city(city: str) -> List[str]:
-    if city.strip():
+    if city.strip() == '':
         exit("Нужно написать название города")
 
     city = city.lower()
     city_list = {}
     regions = requests.get('https://dom.mingkh.ru/moskovskaya-oblast/#all_cities', headers=header)
     soup = BeautifulSoup(regions.text, "lxml")
-    data = soup.find("ul", class_="list-unstyled list-columns")
-    for data_city in data.find_all("li"):
+    data = soup.find_all("ul", class_="list-unstyled list-columns")
+    for data_city in data[0].find_all("li"):
+        url = "https://dom.mingkh.ru" + data_city.find("a").get("href") + 'houses?page='
+        name = data_city.find("a").text.replace("\n", "").lower()
+        city_list[name] = url
+    for data_city in data[1].find_all("li"):
         url = "https://dom.mingkh.ru" + data_city.find("a").get("href") + 'houses?page='
         name = data_city.find("a").text.replace("\n", "").lower()
         city_list[name] = url
@@ -41,29 +45,21 @@ def max_page(city):
     url = f"{get_city(city)} + '1'"
     response = requests.get(url, headers=header)
     soup = BeautifulSoup(response.text, "lxml")
-    try:  # В маленьких городах только 1 страница с домами, е если pages не отрабатывает, значит страница всего одна
+    pages_list = [
+        1]  # Значение = 1, тк в некоторых городах только 1 страница с улицами, тогда тег 'pagination' отсутствует
+    if soup.find(class_="pagination"):
         pages = soup.find("ul", class_="pagination").find_all("li")
-        pages_list = []
-        """в служебном теге pagination где отображаеся стр. 1-3, след. и последняя, получаем номер последней страницы"""
         for page in pages:
             digit = page.find("a").get("data-ci-pagination-page")
-            try:  # Возвращает в ответе и NonType и Empty и цифры, отсеиваем лишнее.
+            if digit is None:
+                continue
+            if digit.isdigit():
                 pages_list.append(int(digit))
-            except:
-                pass
-        max_page = max(pages_list)
-        return int(max_page)
-    except:
-        pass
-    return 1
-
-
-"""парсим страницы по очереди"""
+    return max(pages_list)
 
 
 def get_url(city):
     max_page_ = max_page(city)
-    print(f"Выбран город {city.capitalize()}, начинаем сбор информации о домах...")
     for num_page in range(1, max_page_ + 1):
         url = f"{get_city(city)}{num_page}"
         response = requests.get(url, headers=header)
@@ -74,12 +70,48 @@ def get_url(city):
             yield url
 
 
+def get_address(soup) -> dict[str, str]:
+    town_keyword = ['дп', 'рп', 'снт', 'дер', 'с']
+    street_keyword = ['ул', 'пр-кт', 'пер', 'туп', 'кв-л']
+    location_dict = {'city': '',
+                     'town': 'Нет данных',
+                     'street': 'Нет данных',
+                     'house': ''
+                     }
+    location = soup.find("div", class_='block-heading-two').text.removeprefix(' Анкета дома «').removesuffix(
+        '» ').split(',')
+    spaces = 0
+    for i in location[1].strip():
+        if i == ' ':
+            spaces += 1
+    if len(location) == 3 and (spaces >= 1 or street_keyword in location[1].strip()):
+        location_dict.update({
+            'city': location[0].strip(),
+            'street': location[1].strip(),
+            'house': location[2].strip()
+        })
+    elif len(location) == 3 and (spaces == 0 or town_keyword in location[1].strip()):
+        location_dict.update({
+            'city': location[0].strip(),
+            'town': location[1].strip(),
+            'house': location[2].strip()
+        })
+
+    elif len(location) == 4:
+        location_dict.update({
+            'city': location[0].strip(),
+            'town': location[1].strip(),
+            'street': location[2].strip(),
+            'house': location[3].strip()
+        })
+    return location_dict
+
+
 def parse_result(city: str) -> List[Dict[str, Union[str, int, None]]]:
     print("Получили данные, начинаем записывать результат...")
     my_list = []
-
     for url in get_url(city):
-        union_vals, pre_dict, keys, vals = {}, {}, [], []
+        union_vals, keys, vals = {}, [], []
         response = requests.get(url, headers=header)
         soup = BeautifulSoup(response.text, "lxml")
         data = soup.find("dl", class_="dl-horizontal house")
@@ -90,12 +122,13 @@ def parse_result(city: str) -> List[Dict[str, Union[str, int, None]]]:
         for dd in dd_all:
             vals.append(dd.text)
         union_vals = dict(zip(keys, vals))
-        print(union_vals.get('Адрес', 'Нет данных').removesuffix('   На карте'))
-
+        local_address = get_address(soup)
+        print(local_address.get('city'), ' ', local_address.get('street'), ' ', local_address.get('house'))
         my_list.append({
-            'city': union_vals.get('Адрес', 'Нет данных').split(',')[2].replace(' ', ''),
-            'street': union_vals.get('Адрес', 'Нет данных').split(',')[0],
-            'num_house': union_vals.get('Адрес', 'Нет данных').split(',')[1].replace(' ', ''),
+            'city': local_address.get('city'),
+            'town': local_address.get('town'),
+            'street': local_address.get('street'),
+            'house': local_address.get('house'),
             'house_type': union_vals.get('Тип дома', "Нет данных"),
             'living_quarters': union_vals.get('Жилых помещений', "Нет данных"),
             'series_and_type_of_construction': union_vals.get('Серия, тип постройки', "Нет данных"),
@@ -107,6 +140,4 @@ def parse_result(city: str) -> List[Dict[str, Union[str, int, None]]]:
             'sports_ground': union_vals.get('Спортивная площадка', "Нет данных"),
             'cadastral_number': union_vals.get('Кадастровый номер', "Нет данных")
         })
-
     return my_list
-
