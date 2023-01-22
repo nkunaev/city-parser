@@ -19,7 +19,6 @@ def save_in_csv(name, data: dict):
     for string in data:
         with open(os.path.join(WORKDIR, name + '.csv'), 'a', encoding='cp1251', newline='') as file:
             writer = csv.writer(file, delimiter=',')
-            print(string)
             writer.writerow(string.values())
     print('Done!')
 

@@ -1,6 +1,5 @@
 from save_method import save_file
 from web_parse import parse_result
-from test import test_parce
 
 
 print('''   Это скрипт для парсинга сайта https://dom.mingkh.ru/ по городам Московской области.
