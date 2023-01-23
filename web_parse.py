@@ -70,43 +70,6 @@ def get_url(city):
             yield url
 
 
-def get_address(soup) -> dict[str, str]:
-    town_keyword = ['дп', 'рп', 'снт', 'дер', 'с']
-    street_keyword = ['ул', 'пр-кт', 'пер', 'туп', 'кв-л']
-    location_dict = {'city': '',
-                     'town': 'Нет данных',
-                     'street': 'Нет данных',
-                     'house': ''
-                     }
-    location = soup.find("div", class_='block-heading-two').text.removeprefix(' Анкета дома «').removesuffix(
-        '» ').split(',')
-    spaces = 0
-    for i in location[1].strip():
-        if i == ' ':
-            spaces += 1
-    if len(location) == 3 and spaces > 0:
-        location_dict.update({
-            'city': location[0].strip(),
-            'street': location[1].strip(),
-            'house': location[2].strip()
-        })
-    elif len(location) == 3 and spaces == 0:
-        location_dict.update({
-            'city': location[0].strip(),
-            'town': location[1].strip(),
-            'house': location[2].strip()
-        })
-
-    elif len(location) == 4:
-        location_dict.update({
-            'city': location[0].strip(),
-            'town': location[1].strip(),
-            'street': location[2].strip(),
-            'house': location[3].strip()
-        })
-    return location_dict
-
-
 def parse_result(city: str) -> List[Dict[str, Union[str, int, None]]]:
     print("Получили данные, начинаем записывать результат...")
     my_list = []
@@ -122,13 +85,10 @@ def parse_result(city: str) -> List[Dict[str, Union[str, int, None]]]:
         for dd in dd_all:
             vals.append(dd.text)
         union_vals = dict(zip(keys, vals))
-        local_address = get_address(soup)
-        print(local_address.get('city'), ' ', local_address.get('street'), ' ', local_address.get('house'))
+        location = soup.find("div", class_='block-heading-two').text.removeprefix(' Анкета дома «').removesuffix(
+            '» ')
         my_list.append({
-            'city': local_address.get('city'),
-            'town': local_address.get('town'),
-            'street': local_address.get('street'),
-            'house': local_address.get('house'),
+            'location': location,
             'house_type': union_vals.get('Тип дома', "Нет данных"),
             'living_quarters': union_vals.get('Жилых помещений', "Нет данных"),
             'series_and_type_of_construction': union_vals.get('Серия, тип постройки', "Нет данных"),
