@@ -84,13 +84,13 @@ def get_address(soup) -> dict[str, str]:
     for i in location[1].strip():
         if i == ' ':
             spaces += 1
-    if len(location) == 3 and (spaces >= 1 or street_keyword in location[1].strip()):
+    if len(location) == 3 and spaces > 0:
         location_dict.update({
             'city': location[0].strip(),
             'street': location[1].strip(),
             'house': location[2].strip()
         })
-    elif len(location) == 3 and (spaces == 0 or town_keyword in location[1].strip()):
+    elif len(location) == 3 and spaces == 0:
         location_dict.update({
             'city': location[0].strip(),
             'town': location[1].strip(),
