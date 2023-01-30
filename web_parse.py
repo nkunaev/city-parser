@@ -2,7 +2,9 @@ import requests
 import sys
 from bs4 import BeautifulSoup
 from typing import List, Dict, Union
-from sql_connector import check_city, add_to_city_list, update_cities_in_list, select_city_from_list
+from sql_connector import check_city
+from sql_connector import update_cities_in_list
+from sql_connector import select_city_from_list
 
 
 main_page_url = "https://dom.mingkh.ru"
@@ -12,41 +14,35 @@ header = {
 }
 
 
-def get_city(city: str) -> List[str]:
+def get_city(city: str) -> str:
     if city.strip() == '':
         exit("Нужно написать название города")
     city = city.lower()
     if check_city(city) == 1:
-        print("Такого города нет в базе, можете попробовать ее обновить. ")
+        print("Такого города нет в базе, можете попробовать ее обновить и попробовать снова. ")
+    elif city == 'search':
+        select_city_from_list('get_cities')
+        sys.exit(0)
     need_update = int(input("Нужно ли обновить список городов? '\n' >>> Да - нажми 1 '\t' >>> Нет - нажми 0 '\n' >>> "))
-    if check_city(city) == 1 or need_update == 1:
-        city_list = {}
+    if need_update == 1:
         regions = requests.get('https://dom.mingkh.ru/moskovskaya-oblast/#all_cities', headers=header)
         soup = BeautifulSoup(regions.text, "lxml")
         data = soup.find_all("ul", class_="list-unstyled list-columns")
         for data_city in data[0].find_all("li"):
             url = "https://dom.mingkh.ru" + data_city.find("a").get("href") + 'houses?page='
             name = data_city.find("a").text.replace("\n", "").lower()
-            add_to_city_list(name, url)
+            update_cities_in_list(name, url)
         for data_city in data[1].find_all("li"):
             url = "https://dom.mingkh.ru" + data_city.find("a").get("href") + 'houses?page='
             name = data_city.find("a").text.replace("\n", "").lower()
-            add_to_city_list(name, url)
-
-    if city == "search":
-        print("Вот список населенных пунктов:")
-        for city_ in city_list.keys():
-            print(city_.capitalize())
-        sys.exit(0)
-    elif city in city_list.keys():
-        return city_list[city]
+            update_cities_in_list(name, url)
+    if check_city(city) == 0:
+        return select_city_from_list('get_url', city)
     else:
-        print("Такого города нет, вот список населенных пунктов:")
-        for city_ in city_list.keys():
-            print(city_.capitalize())
-        exit()
+        print("Такого города нет в списке населенных пунктов. ")
+        sys.exit(0)
 
-get_city('высоковск')
+print(get_city('высоковск'))
 def max_page(city):
     url = f"{get_city(city)} + '1'"
     response = requests.get(url, headers=header)
