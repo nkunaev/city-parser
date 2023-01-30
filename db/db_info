@@ -1,0 +1,15 @@
+CREATE TABLE cities (
+    address text,
+    house_type text,
+    living_quarters integer,
+    type_of_construction text,
+    type_of_overlap text,
+    wall_material text,
+    type_of_garbage_chute text,
+    recognized_as_emergency text,
+    playground text,
+    sports_ground text,
+    cadastral_number text
+)
+
+CREATE TABLE list_of_cities (name text, url text)

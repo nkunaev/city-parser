@@ -9,7 +9,9 @@ print('''   Это скрипт для парсинга сайта https://dom.m
 print()
 city_name = input("Введите название города: ").lower()
 data = parse_result(city_name)
-# city_name = "test"
-# data = test_parce()
+    # city_name = "test"
+    # data = test_parce()
 save_file(data, city_name)
+
+
 
