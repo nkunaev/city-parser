@@ -52,3 +52,12 @@ def update_houses_info(
     '{sports_ground}', '{cadastral_number}')""")
     db.commit()
     db.close()
+
+def select_cities():
+    db = sqlite3.connect('db/cities.db')
+    c = db.cursor()
+    c.execute("SELECT * FROM cities")
+    db.commit()
+    print(c.fetchmany(10))
+    db.close()
+

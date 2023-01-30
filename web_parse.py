@@ -99,5 +99,3 @@ def parse_result(city: str):
                            union_vals.get('Спортивная площадка', "Нет данных"),
                            union_vals.get('Кадастровый номер', "Нет данных")
                            )
-
-parse_result('высоковск')
