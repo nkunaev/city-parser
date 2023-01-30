@@ -1,11 +1,10 @@
 import requests
 import sys
 from bs4 import BeautifulSoup
-from typing import List, Dict, Union
 from sql_connector import check_city
 from sql_connector import update_cities_in_list
 from sql_connector import select_city_from_list
-
+from sql_connector import update_houses_info
 
 main_page_url = "https://dom.mingkh.ru"
 header = {
@@ -42,13 +41,13 @@ def get_city(city: str) -> str:
         print("Такого города нет в списке населенных пунктов. ")
         sys.exit(0)
 
-print(get_city('высоковск'))
+
 def max_page(city):
     url = f"{get_city(city)} + '1'"
     response = requests.get(url, headers=header)
     soup = BeautifulSoup(response.text, "lxml")
-    pages_list = [
-        1]  # Значение = 1, тк в некоторых городах только 1 страница с улицами, тогда тег 'pagination' отсутствует
+    pages_list = [1]
+    # Значение = 1, тк в некоторых городах только 1 страница с улицами, тогда тег 'pagination' отсутствует
     if soup.find(class_="pagination"):
         pages = soup.find("ul", class_="pagination").find_all("li")
         for page in pages:
@@ -72,9 +71,8 @@ def get_url(city):
             yield url
 
 
-def parse_result(city: str) -> List[Dict[str, Union[str, int, None]]]:
+def parse_result(city: str):
     print("Получили данные, начинаем записывать результат...")
-    my_list = []
     for url in get_url(city):
         union_vals, keys, vals = {}, [], []
         response = requests.get(url, headers=header)
@@ -89,17 +87,17 @@ def parse_result(city: str) -> List[Dict[str, Union[str, int, None]]]:
         union_vals = dict(zip(keys, vals))
         location = soup.find("div", class_='block-heading-two').text.removeprefix(' Анкета дома «').removesuffix(
             '» ')
-        my_list.append({
-            'location': location,
-            'house_type': union_vals.get('Тип дома', "Нет данных"),
-            'living_quarters': union_vals.get('Жилых помещений', "Нет данных"),
-            'series_and_type_of_construction': union_vals.get('Серия, тип постройки', "Нет данных"),
-            'type_of_overlap': union_vals.get('Тип перекрытий', "Нет данных"),
-            'wall_material': union_vals.get('Материал несущих стен', "Нет данных"),
-            'type_of_garbage_chute': union_vals.get('Тип мусоропровода', "Нет данных"),
-            'recognized_as_emergency': union_vals.get('Дом признан аварийным', "Нет данных"),
-            'playground': union_vals.get('Детская площадка', "Нет данных"),
-            'sports_ground': union_vals.get('Спортивная площадка', "Нет данных"),
-            'cadastral_number': union_vals.get('Кадастровый номер', "Нет данных")
-        })
-    return my_list
+        update_houses_info(location,
+                           union_vals.get('Тип дома', "Нет данных"),
+                           union_vals.get('Жилых помещений', "Нет данных"),
+                           union_vals.get('Серия, тип постройки', 1),
+                           union_vals.get('Тип перекрытий', "Нет данных"),
+                           union_vals.get('Материал несущих стен', "Нет данных"),
+                           union_vals.get('Тип мусоропровода', "Нет данных"),
+                           union_vals.get('Дом признан аварийным', "Нет данных"),
+                           union_vals.get('Детская площадка', "Нет данных"),
+                           union_vals.get('Спортивная площадка', "Нет данных"),
+                           union_vals.get('Кадастровый номер', "Нет данных")
+                           )
+
+parse_result('высоковск')
