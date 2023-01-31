@@ -5,7 +5,6 @@ import sqlite3
 def check_city(city: str):
     db = sqlite3.connect('db/cities.db')
     c = db.cursor()
-    # c.execute("INSERT INTO list_of_cities VALUES ('moscow', 'http://doodoo.com')")
     info = c.execute(f"SELECT * FROM list_of_cities WHERE name = '{city}'")
     db.commit()
     if info.fetchone() is None:
